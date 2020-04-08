@@ -1,5 +1,7 @@
 package burp
 
+import burp.IBurpExtenderCallbacks.Companion.TOOL_INTRUDER
+import burp.IBurpExtenderCallbacks.Companion.TOOL_SCANNER
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Font
@@ -289,8 +291,10 @@ class HttpListener: IHttpListener {
                 val encryptedRequest = scriptRunner.encryptOrDecrypt("encrypt", messageInfo.request, true)
                 messageInfo.request = encryptedRequest.toByteArray(Charsets.ISO_8859_1)
             } else {
-                val decryptedResponse = scriptRunner.encryptOrDecrypt("decrypt", messageInfo.response, false)
-                messageInfo.response = decryptedResponse.toByteArray(Charsets.ISO_8859_1)
+                if (toolFlag == TOOL_SCANNER || toolFlag == TOOL_INTRUDER) {
+                    val decryptedResponse = scriptRunner.encryptOrDecrypt("decrypt", messageInfo.response, false)
+                    messageInfo.response = decryptedResponse.toByteArray(Charsets.ISO_8859_1)
+                }
             }
         }
         catch (ex: Exception) {
