@@ -161,7 +161,7 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
                 controller.httpService.host,
                 controller.httpService.port,
                 controller.httpService.protocol == "https",
-                text.toByteArray(Charsets.ISO_8859_1))
+                addHeaderToRequest(textArea.text).toByteArray(Charsets.ISO_8859_1))
         }
         popupMenu.add(sendToScanner)
 
@@ -171,13 +171,13 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
                 controller.httpService.host,
                 controller.httpService.port,
                 controller.httpService.protocol == "https",
-                text.toByteArray(Charsets.ISO_8859_1))
+                addHeaderToRequest(textArea.text).toByteArray(Charsets.ISO_8859_1))
         }
         popupMenu.add(sendToIntruder)
 
         val sendToComparer = JMenuItem("Send to Comparer")
         sendToComparer.addActionListener {
-            BurpExtender.callbacks.sendToComparer(text.toByteArray(Charsets.ISO_8859_1))
+            BurpExtender.callbacks.sendToComparer(textArea.text.toByteArray(Charsets.ISO_8859_1))
         }
         popupMenu.add(sendToComparer)
 
@@ -185,7 +185,11 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
     }
 
     var text: String
-        get() = textArea.text
+        get(): String {
+            val scriptRunner = BurpExtender.scriptRunner ?: return textArea.text
+            val request = textArea.text.toByteArray(Charsets.ISO_8859_1)
+            return scriptRunner.encryptOrDecrypt("encrypt", request, true)
+        }
         set(text) {
             if(currentText == text) {
                 return
@@ -208,6 +212,13 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
 
     override fun removeUpdate(e: DocumentEvent?) {
         modified = true
+    }
+
+    private fun addHeaderToRequest(request: String): String {
+        val requestInfo = BurpExtender.callbacks.helpers.analyzeRequest(request.toByteArray(Charsets.ISO_8859_1))
+        return (request.substring(0, requestInfo.bodyOffset - 2)
+                  + BurpExtender.header + "\r\n"
+                  + request.substring(requestInfo.bodyOffset))
     }
 }
 
@@ -266,11 +277,6 @@ class ScriptRunner(
         val body = content.copyOfRange(bodyOffset, content.size)
         val decryptedBody = invocable.invokeFunction(operation, String(body, Charsets.ISO_8859_1))
         var headersString = String(content.copyOfRange(0, bodyOffset), Charsets.ISO_8859_1)
-        if (operation == "decrypt") {
-            headersString = (headersString.substring(0, headersString.length - 2)
-                           + BurpExtender.header
-                           + headersString.substring(headersString.length - 2))
-        }
         // TODO: fixup Content-Length
         return headersString + decryptedBody
     }
@@ -291,10 +297,8 @@ class HttpListener: IHttpListener {
                 val encryptedRequest = scriptRunner.encryptOrDecrypt("encrypt", messageInfo.request, true)
                 messageInfo.request = encryptedRequest.toByteArray(Charsets.ISO_8859_1)
             } else {
-                if (toolFlag == TOOL_SCANNER || toolFlag == TOOL_INTRUDER) {
-                    val decryptedResponse = scriptRunner.encryptOrDecrypt("decrypt", messageInfo.response, false)
-                    messageInfo.response = decryptedResponse.toByteArray(Charsets.ISO_8859_1)
-                }
+                val decryptedResponse = scriptRunner.encryptOrDecrypt("decrypt", messageInfo.response, false)
+                messageInfo.response = decryptedResponse.toByteArray(Charsets.ISO_8859_1)
             }
         }
         catch (ex: Exception) {
