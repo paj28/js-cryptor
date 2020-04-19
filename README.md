@@ -2,7 +2,7 @@
 
 This Burp extension helps you test web applications that use JavaScript encryption. Encryption used this way provides no real security, however it prevents testing tools like Burp operating correctly.
 
- * [Video demo](https://www.youtube.com/watch?v=TvPaZQqFNN4)
+ * [Video demo](https://youtu.be/SzA7Lg_ZEkA)
 
 To use the extension you need to analyze the application's JavaScript and locate the encryption and decryption functionality. In the *JS Cryptor* tab, you can define an encryption and decryption function. The functions must be named `encrypt` and `decrypt`, take a single string argument, and return a string. You can then *Save* these functions into your project file.
 
