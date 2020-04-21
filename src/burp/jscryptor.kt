@@ -9,7 +9,6 @@ import javax.script.Invocable
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import javax.swing.JButton
-import javax.swing.JMenuItem
 import javax.swing.JOptionPane.*
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
@@ -25,6 +24,13 @@ class BurpExtender: IBurpExtender {
         var scriptRunner: ScriptRunner? = null
 
         fun savePanelData(panelData: PanelData) {
+            // Allow user to clear functions
+            if (panelData.decryptFunction.trim().isEmpty()) {
+                scriptRunner = null
+                panelData.save()
+                return
+            }
+
             val scriptEngineRunner = ScriptRunner(panelData.encryptFunction, panelData.decryptFunction)
             try {
                 scriptEngineRunner.test()
@@ -32,7 +38,6 @@ class BurpExtender: IBurpExtender {
                 panelData.save()
                 showMessageDialog(getBurpFrame(), "Functions saved", BurpExtender.name, INFORMATION_MESSAGE);
             } catch (ex: Exception) {
-                scriptRunner = null
                 showMessageDialog(getBurpFrame(), ex.message, BurpExtender.name, ERROR_MESSAGE);
             }
         }
@@ -114,7 +119,7 @@ class MessageEditorTabFactory: IMessageEditorTabFactory {
 }
 
 
-class MessageEditorTab(controller: IMessageEditorController?, editable: Boolean): IMessageEditorTab {
+class MessageEditorTab(val controller: IMessageEditorController?, editable: Boolean): IMessageEditorTab {
 
     var messageIsRequest: Boolean = false
 
@@ -144,6 +149,7 @@ class MessageEditorTab(controller: IMessageEditorController?, editable: Boolean)
         try {
             messageIsRequest = isRequest
             uiComponent.textEditor.text = BurpExtender.scriptRunner?.encryptOrDecrypt("decrypt", content, isRequest) ?: byteArrayOf()
+            uiComponent.setIsRequest(isRequest)
         }
         catch(ex: Exception) {
             uiComponent.textEditor.text = byteArrayOf()
@@ -155,43 +161,54 @@ class MessageEditorTab(controller: IMessageEditorController?, editable: Boolean)
 }
 
 
-class MessageEditorPanel(private val controller: IMessageEditorController?, editable: Boolean): JPanel() {
+class MessageEditorPanel(private val controller: IMessageEditorController?, private val editable: Boolean): JPanel() {
     val textEditor = BurpExtender.callbacks.createTextEditor()
+    var sendToScanner: JButton
+    var sendToIntruder: JButton
 
     init {
-        textEditor.setEditable(editable)
         layout = BorderLayout()
         add(textEditor.component, BorderLayout.CENTER)
 
-        if (controller != null) {
-            val bottomPanel = JPanel()
-            val sendToScanner = JButton("Send to Scanner")
-            sendToScanner.addActionListener {
+        val bottomPanel = JPanel()
+        sendToScanner = JButton("Send to Scanner")
+        sendToScanner.addActionListener {
+            if (controller != null) {
                 BurpExtender.callbacks.doActiveScan(
                         controller.httpService.host,
                         controller.httpService.port,
                         controller.httpService.protocol == "https",
                         addHeaderToRequest(textEditor.text).toByteArray(Charsets.ISO_8859_1))
             }
-            bottomPanel.add(sendToScanner)
+        }
+        bottomPanel.add(sendToScanner)
 
-            val sendToIntruder = JButton("Send to Intruder")
-            sendToIntruder.addActionListener {
+        sendToIntruder = JButton("Send to Intruder")
+        sendToIntruder.addActionListener {
+            if (controller != null) {
                 BurpExtender.callbacks.sendToIntruder(
                         controller.httpService.host,
                         controller.httpService.port,
                         controller.httpService.protocol == "https",
                         addHeaderToRequest(textEditor.text).toByteArray(Charsets.ISO_8859_1))
             }
-            bottomPanel.add(sendToIntruder)
-
-            val sendToComparer = JButton("Send to Comparer")
-            sendToComparer.addActionListener {
-                BurpExtender.callbacks.sendToComparer(textEditor.text)
-            }
-            bottomPanel.add(sendToComparer)
-            add(bottomPanel, BorderLayout.SOUTH)
         }
+        bottomPanel.add(sendToIntruder)
+
+        val sendToComparer = JButton("Send to Comparer")
+        sendToComparer.addActionListener {
+            BurpExtender.callbacks.sendToComparer(textEditor.text)
+        }
+        bottomPanel.add(sendToComparer)
+        add(bottomPanel, BorderLayout.SOUTH)
+        setIsRequest(false)
+    }
+
+    fun setIsRequest(isRequest: Boolean) {
+        val hasEncrypt = BurpExtender.scriptRunner?.hasEncrypt == true
+        textEditor.setEditable(editable && hasEncrypt)
+        sendToScanner.isEnabled = isRequest && hasEncrypt && controller != null
+        sendToIntruder.isEnabled = isRequest && hasEncrypt && controller != null
     }
 }
 
@@ -212,12 +229,16 @@ class ScriptRunner(
     private val scriptEngineManager = ScriptEngineManager()
     private val scriptEngine: ScriptEngine = scriptEngineManager.getEngineByName("nashorn")
     private val invocable = scriptEngine as Invocable
+    var hasEncrypt: Boolean = false
 
     fun test() {
-        scriptEngine.eval(encryptFunction)
-        val result = invocable.invokeFunction("encrypt", "test")
-        if (result !is String) {
-            throw Exception("Encrypt function must return a string")
+        if (encryptFunction.trim().isNotEmpty()) {
+            scriptEngine.eval(encryptFunction)
+            val result = invocable.invokeFunction("encrypt", "test")
+            if (result !is String) {
+                throw Exception("Encrypt function must return a string")
+            }
+            hasEncrypt = true
         }
 
         scriptEngine.eval(decryptFunction)
@@ -238,7 +259,12 @@ class ScriptRunner(
     fun encryptOrDecrypt(operation: String, content: ByteArray, isRequest: Boolean): ByteArray {
         val bodyOffset = getBodyOffset(content, isRequest)
         val body = content.copyOfRange(bodyOffset, content.size)
-        val convertedBody = invocable.invokeFunction(operation, String(body, Charsets.ISO_8859_1))
+        val convertedBody = if (operation == "encrypt" && !hasEncrypt) {
+            body
+        }
+        else {
+            invocable.invokeFunction(operation, String(body, Charsets.ISO_8859_1))
+        }
         var headersString = String(content.copyOfRange(0, bodyOffset), Charsets.ISO_8859_1)
         // TODO: fixup Content-Length
         return (headersString + convertedBody).toByteArray(Charsets.ISO_8859_1)
