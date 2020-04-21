@@ -183,7 +183,7 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
             }
             bottomPanel.add(sendToIntruder)
 
-            val sendToComparer = JMenuItem("Send to Comparer")
+            val sendToComparer = JButton("Send to Comparer")
             sendToComparer.addActionListener {
                 BurpExtender.callbacks.sendToComparer(textEditor.text)
             }
@@ -285,8 +285,4 @@ fun findArrayInArray(needle: ByteArray, haystack: ByteArray): Boolean {
         }
     }
     return false
-}
-
-fun stripUnicodeChars(data: String): String {
-    return String(data.toByteArray(Charsets.ISO_8859_1), Charsets.ISO_8859_1)
 }
