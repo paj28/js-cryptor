@@ -121,8 +121,10 @@ class MessageEditorTab(controller: IMessageEditorController?, editable: Boolean)
     override val uiComponent = MessageEditorPanel(controller, editable)
     override val tabCaption = BurpExtender.name
     override fun isEnabled(content: ByteArray, isRequest: Boolean) = BurpExtender.scriptRunner != null
-    override val isModified = uiComponent.textEditor.isTextModified
-    override val selectedData = uiComponent.textEditor.selectedText
+    override val isModified
+            get() = uiComponent.textEditor.isTextModified
+    override val selectedData
+            get() = uiComponent.textEditor.selectedText
 
     override val message: ByteArray
         get() {
