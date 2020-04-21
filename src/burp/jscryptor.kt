@@ -8,6 +8,7 @@ import java.awt.Font
 import java.awt.Frame
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
+import java.lang.Integer.min
 import java.net.URL
 import javax.script.Invocable
 import javax.script.ScriptEngine
@@ -22,6 +23,7 @@ class BurpExtender: IBurpExtender {
     companion object {
         const val name = "JS Cryptor"
         const val header = "X-JSCryptor: decrypted\r\n"
+        val headerByteArray = header.toByteArray(Charsets.ISO_8859_1)
         const val dummyUrl = "http://burp/jscryptor"
         lateinit var callbacks: IBurpExtenderCallbacks
         var scriptRunner: ScriptRunner? = null
@@ -287,8 +289,7 @@ class HttpListener: IHttpListener {
     override fun processHttpMessage(toolFlag: Int, messageIsRequest: Boolean, messageInfo: IHttpRequestResponse) {
         val scriptRunner = BurpExtender.scriptRunner ?: return
 
-        // TODO: make this more efficient
-        if (BurpExtender.header !in String(messageInfo.request, Charsets.ISO_8859_1)) {
+        if (!findArrayInArray(BurpExtender.headerByteArray, messageInfo.request)) {
             return
         }
 
@@ -307,6 +308,24 @@ class HttpListener: IHttpListener {
     }
 }
 
+
 fun getBurpFrame(): Frame? {
     return Frame.getFrames().firstOrNull { it.isVisible && it.title.startsWith("Burp Suite") }
+}
+
+
+fun findArrayInArray(needle: ByteArray, haystack: ByteArray): Boolean {
+    val end = min(1024, haystack.size) - needle.size;
+    val firstByte = needle[0]
+    outer@ for (i in 0 .. end) {
+        if (haystack[i] == firstByte) {
+            for (j in 1 .. needle.lastIndex) {
+                if (haystack[i + j] != needle[j]) {
+                    break@outer
+                }
+            }
+            return true
+        }
+    }
+    return false
 }
