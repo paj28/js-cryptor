@@ -3,15 +3,16 @@ package burp
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Frame
-import java.awt.event.ActionEvent
-import java.awt.event.ActionListener
 import java.lang.Integer.min
 import java.net.URL
 import javax.script.Invocable
 import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
-import javax.swing.*
+import javax.swing.JButton
+import javax.swing.JMenuItem
 import javax.swing.JOptionPane.*
+import javax.swing.JPanel
+import javax.swing.SwingUtilities
 
 
 class BurpExtender: IBurpExtender {
@@ -22,6 +23,19 @@ class BurpExtender: IBurpExtender {
         const val dummyUrl = "http://burp/jscryptor"
         lateinit var callbacks: IBurpExtenderCallbacks
         var scriptRunner: ScriptRunner? = null
+
+        fun savePanelData(panelData: PanelData) {
+            val scriptEngineRunner = ScriptRunner(panelData.encryptFunction, panelData.decryptFunction)
+            try {
+                scriptEngineRunner.test()
+                scriptRunner = scriptEngineRunner
+                panelData.save()
+                showMessageDialog(getBurpFrame(), "Functions saved", BurpExtender.name, INFORMATION_MESSAGE);
+            } catch (ex: Exception) {
+                scriptRunner = null
+                showMessageDialog(getBurpFrame(), ex.message, BurpExtender.name, ERROR_MESSAGE);
+            }
+        }
     }
 
     override fun registerExtenderCallbacks(callbacks: IBurpExtenderCallbacks) {
@@ -51,7 +65,7 @@ class JsCryptorTab(private val panelData: PanelData): ITab {
             get() {
                 val jsCryptorPanel = JsCryptorPanel()
                 jsCryptorPanel.setData(panelData)
-                return jsCryptorPanel.panel
+                return jsCryptorPanel
             }
 }
 
@@ -186,25 +200,6 @@ fun addHeaderToRequest(request: ByteArray): String {
     return (requestString.substring(0, requestInfo.bodyOffset - 2)
             + BurpExtender.header + "\r\n"
             + requestString.substring(requestInfo.bodyOffset))
-}
-
-
-class SaveActionListener(val jsCryptorPanel: JsCryptorPanel): ActionListener {
-    override fun actionPerformed(event: ActionEvent) {
-        val panelData = PanelData()
-        jsCryptorPanel.getData(panelData)
-        val scriptEngineRunner = ScriptRunner(panelData.encryptFunction, panelData.decryptFunction)
-        try {
-            scriptEngineRunner.test()
-            BurpExtender.scriptRunner = scriptEngineRunner
-            panelData.save()
-            showMessageDialog(getBurpFrame(), "Functions saved", BurpExtender.name, INFORMATION_MESSAGE);
-        }
-        catch(ex: Exception) {
-            BurpExtender.scriptRunner = null
-            showMessageDialog(getBurpFrame(), ex.message, BurpExtender.name, ERROR_MESSAGE);
-        }
-    }
 }
 
 
