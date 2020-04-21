@@ -24,11 +24,15 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-	compile files("libs/burp-extender-api-kotlin.jar")
+    compile files("libs/rsyntaxtextarea-2.6.1.edited.jar")
+    compile files("libs/burp-extender-api-kotlin.jar")
 }
 
-jar {
+task fatJar(type: Jar) {
+    archiveClassifier = "all"
     from {
         configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+    with jar
 }

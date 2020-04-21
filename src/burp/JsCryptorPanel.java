@@ -6,6 +6,8 @@
 package burp;
 
 import javafx.scene.layout.Pane;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 
 /**
  *
@@ -31,9 +33,11 @@ public class JsCryptorPanel extends javax.swing.JPanel {
 
         jLabel1 = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        jEncryptTextArea = new javax.swing.JTextArea();
+        jEncryptTextArea = new RSyntaxTextArea();
+        jEncryptTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
         jScrollPane2 = new javax.swing.JScrollPane();
-        jDecryptTextArea = new javax.swing.JTextArea();
+        jDecryptTextArea = new RSyntaxTextArea();
+        jDecryptTextArea.setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_JAVASCRIPT);
         jLabel2 = new javax.swing.JLabel();
         jSaveButton = new javax.swing.JButton();
 
@@ -113,8 +117,8 @@ public class JsCryptorPanel extends javax.swing.JPanel {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JTextArea jDecryptTextArea;
-    private javax.swing.JTextArea jEncryptTextArea;
+    private RSyntaxTextArea jDecryptTextArea;
+    private RSyntaxTextArea jEncryptTextArea;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JButton jSaveButton;
