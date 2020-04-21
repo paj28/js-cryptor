@@ -97,14 +97,13 @@ class DummyHttpRequestResponse(private val config: String): IHttpRequestResponse
 
 
 class MessageEditorTabFactory: IMessageEditorTabFactory {
-    // TODO: controller could be null
-    override fun createNewInstance(controller: IMessageEditorController, editable: Boolean): IMessageEditorTab {
+    override fun createNewInstance(controller: IMessageEditorController?, editable: Boolean): IMessageEditorTab {
         return MessageEditorTab(controller, editable)
     }
 }
 
 
-class MessageEditorTab(controller: IMessageEditorController, editable: Boolean): IMessageEditorTab {
+class MessageEditorTab(controller: IMessageEditorController?, editable: Boolean): IMessageEditorTab {
     private val messageEditorPanel = MessageEditorPanel(controller, editable)
 
     override val tabCaption = BurpExtender.name
