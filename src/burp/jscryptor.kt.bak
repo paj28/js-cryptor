@@ -38,7 +38,7 @@ class BurpExtender: IBurpExtender {
             // do nothing
         }
 
-        callbacks.addSuiteTab(JsCryptorTab(panelData))
+//        callbacks.addSuiteTab(JsCryptorTab(panelData))
         callbacks.registerMessageEditorTabFactory(MessageEditorTabFactory())
         callbacks.registerHttpListener(HttpListener())
     }
