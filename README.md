@@ -9,3 +9,5 @@ To use the extension you need to analyze the application's JavaScript and locate
 Once you have defined the functions, a *JS Cryptor* tab will appear in every message editor within Burp. The editor will be editable, in applicable contexts, and the message re-encrypted after it is edited.
 
 You can also send the request in decrypted format to automated Burp tools (i.e. Intruder and Scanner) In this case, the tools  the decrypted request, so features like insertion point detection operate normally. A special header added is the request, *X-JSCryptor: decrypted* When the request is sent, an *IHttpListener* detects this header and applies the encryption, so the target application receives the request in the encrypted format it is expecting. The *IHttpListener* also decrypts the response so the Burp tool can process it normally.
+
+The string argument passed to the functions is a direct conversion of a byte array, without Unicode decoding (technically this is the ISO-8859-1 charset). The functions should return a similar string. If the returned string contains any characters >255 then only the low-byte of this character will be used.

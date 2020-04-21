@@ -1,7 +1,5 @@
 package burp
 
-import burp.IBurpExtenderCallbacks.Companion.TOOL_INTRUDER
-import burp.IBurpExtenderCallbacks.Companion.TOOL_SCANNER
 import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Font
@@ -124,7 +122,7 @@ class MessageEditorTab(controller: IMessageEditorController, editable: Boolean):
 
     override fun setMessage(content: ByteArray, isRequest: Boolean) {
         try {
-            messageEditorPanel.text = BurpExtender.scriptRunner?.encryptOrDecrypt("decrypt", content, isRequest) ?: ""
+            messageEditorPanel.text = stripUnicodeChars(BurpExtender.scriptRunner?.encryptOrDecrypt("decrypt", content, isRequest) ?: "")
         }
         catch(ex: Exception) {
             messageEditorPanel.text = ""
@@ -190,7 +188,7 @@ class MessageEditorPanel(private val controller: IMessageEditorController?, edit
         get(): String {
             val scriptRunner = BurpExtender.scriptRunner ?: return textArea.text
             val request = textArea.text.toByteArray(Charsets.ISO_8859_1)
-            return scriptRunner.encryptOrDecrypt("encrypt", request, true)
+            return stripUnicodeChars(scriptRunner.encryptOrDecrypt("encrypt", request, true))
         }
         set(text) {
             if(currentText == text) {
@@ -277,10 +275,10 @@ class ScriptRunner(
     fun encryptOrDecrypt(operation: String, content: ByteArray, isRequest: Boolean): String {
         val bodyOffset = getBodyOffset(content, isRequest)
         val body = content.copyOfRange(bodyOffset, content.size)
-        val decryptedBody = invocable.invokeFunction(operation, String(body, Charsets.ISO_8859_1))
+        val convertedBody = invocable.invokeFunction(operation, String(body, Charsets.ISO_8859_1))
         var headersString = String(content.copyOfRange(0, bodyOffset), Charsets.ISO_8859_1)
         // TODO: fixup Content-Length
-        return headersString + decryptedBody
+        return headersString + convertedBody
     }
 }
 
@@ -328,4 +326,8 @@ fun findArrayInArray(needle: ByteArray, haystack: ByteArray): Boolean {
         }
     }
     return false
+}
+
+fun stripUnicodeChars(data: String): String {
+    return String(data.toByteArray(Charsets.ISO_8859_1), Charsets.ISO_8859_1)
 }
