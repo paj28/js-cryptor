@@ -24,17 +24,16 @@ class BurpExtender: IBurpExtender {
         var scriptRunner: ScriptRunner? = null
 
         fun savePanelData(panelData: PanelData) {
-            // Allow user to clear functions
-            if (panelData.decryptFunction.trim().isEmpty()) {
-                scriptRunner = null
-                panelData.save()
-                return
-            }
-
             val scriptEngineRunner = ScriptRunner(panelData.encryptFunction, panelData.decryptFunction)
             try {
-                scriptEngineRunner.test()
-                scriptRunner = scriptEngineRunner
+                // Allow user to clear functions
+                if (panelData.decryptFunction.trim().isEmpty()) {
+                    scriptRunner = null
+                }
+                else {
+                    scriptEngineRunner.test()
+                    scriptRunner = scriptEngineRunner
+                }
                 panelData.save()
                 showMessageDialog(getBurpFrame(), "Functions saved", BurpExtender.name, INFORMATION_MESSAGE);
             } catch (ex: Exception) {
