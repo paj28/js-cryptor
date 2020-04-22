@@ -300,16 +300,13 @@ fun getBurpFrame(): Frame? {
 
 fun findArrayInArray(needle: ByteArray, haystack: ByteArray): Boolean {
     val end = min(1024, haystack.size) - needle.size;
-    val firstByte = needle[0]
     outer@ for (i in 0 .. end) {
-        if (haystack[i] == firstByte) {
-            for (j in 1 .. needle.lastIndex) {
-                if (haystack[i + j] != needle[j]) {
-                    break@outer
-                }
+        for (j in 1 .. needle.lastIndex) {
+            if (haystack[i + j] != needle[j]) {
+                break@outer
             }
-            return true
         }
+        return true
     }
     return false
 }
